@@ -1,13 +1,15 @@
 #include <Arduino.h>
 #include <Adafruit_MPU6050.h>
+#include <math.h>
 //#include <Adafruit_Sensor.h>
-//#include <Wire.h>
+#include <Wire.h>
+
+unsigned long myTime;
 
 Adafruit_MPU6050 mpu;
-//int counter = 0;
 int LEDPIN = 19;
 int currentState;
-
+int counter = {0};
 int ENA = {0};
 int ENB = {2};
 int int1 = {15};
@@ -15,11 +17,26 @@ int int2 = {13};
 int int3 = {12};
 int int4 = {14};
 
-//int int1 = {8};
-//int int2 = {7};
-//int int3 = {6};
-//int int4 = {5};
+double accX_tot = {0};
+double accY_tot = {0};
+double accZ_tot = {0};
+double gyrX_tot = {0};
+double gyrY_tot = {0};
+double gyrZ_tot = {0};
 
+double accX_offset = {-.51};
+double accY_offset = {.02};
+double accZ_offset = {-1.64};
+double gyrX_offset = {-.01};
+double gyrY_offset = {.01};
+double gyrZ_offset = {-.01};
+
+double Kp = {.3};
+double Ki = {.2};
+double Kd = {0};
+
+double U_tot = {0};
+double x_rot = {0};
 
 
 void setup(void) {
@@ -29,9 +46,12 @@ void setup(void) {
   pinMode(int2,OUTPUT);
   pinMode(int3,OUTPUT);
   pinMode(int4,OUTPUT);
+  pinMode(ENA,OUTPUT);
+  pinMode(ENB,OUTPUT);
   Serial.println("Through set up");
+  
 
-  /*  // Try to initialize!
+  // Try to initialize!
   if (!mpu.begin()) {
     Serial.println("Failed to find MPU6050 chip");
     while (1) {
@@ -74,7 +94,7 @@ void setup(void) {
     break;
   }
 
-  mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
+  mpu.setFilterBandwidth(MPU6050_BAND_94_HZ);
   Serial.print("Filter bandwidth set to: ");
   switch (mpu.getFilterBandwidth()) {
   case MPU6050_BAND_260_HZ:
@@ -102,25 +122,78 @@ void setup(void) {
 
   Serial.println("");
   delay(100);
-  */
+  
 }
 
+void moveForward(int PWM){
+  Serial.println("Forward");
+  digitalWrite(int1, HIGH);
+  digitalWrite(int2, LOW);
+  digitalWrite(int3, LOW);
+  digitalWrite(int4, HIGH);
+  digitalWrite(ENA, PWM);
+  digitalWrite(ENB, PWM);
+}
+void moveBackward(int PWM){
+  Serial.println("Backward");
+  digitalWrite(ENA, PWM);
+  digitalWrite(ENB, PWM);
+  digitalWrite(int1, LOW);
+  digitalWrite(int2, HIGH);
+  digitalWrite(int3, HIGH);
+  digitalWrite(int4, LOW);
+}
 
 void loop() {
   //currentState = digitalRead(LEDPIN);
   currentState = HIGH;
-  forward(150);
-  delay(1000);
-  backward(150);
-  //digitalWrite(int1, HIGH);
-  //digitalWrite(int2, LOW);
-  //digitalWrite(int3, LOW);
-  //digitalWrite(int4, HIGH);
-  //Serial.println("Set high");
-  //delay(3000);
-
-  /*
+  myTime = millis();
   sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  double curr_angle_acc = {0};
+  double accX = {0};
+  double accY = {0};
+  double accZ = {0};
+  double gyrX = {0};
+  double gyrY = {0};
+  double gyrZ = {0};
+
+  accX = a.acceleration.x + accX_offset;
+  accY = a.acceleration.y + accY_offset;
+  accZ = a.acceleration.z + accZ_offset;
+  gyrX = g.gyro.x + gyrX_offset;
+  gyrY = g.gyro.y + gyrY_offset;
+  gyrZ = g.gyro.z + gyrZ_offset;
+  Serial.print("Y: ");
+  Serial.print(accY);
+  Serial.print(", Z: ");
+  Serial.print(accZ);
+  Serial.print(", Angle Deg: ");
+  curr_angle_acc = atan(accZ / accY) * RAD_TO_DEG;
+
+  Serial.println(curr_angle_acc);
+
+  //U_tot = Kp * ;
+
+  // Serial.print(accX);
+  // Serial.print(", ");
+  // Serial.print(accY);
+  // Serial.print(", ");
+  // Serial.print(accZ);
+  // Serial.print(", ");
+  // Serial.print(gyrX);
+  // Serial.print(", ");
+  // Serial.print(gyrY);
+  // Serial.print(", ");
+  // Serial.print(gyrZ);
+  // Serial.print(", ");
+  // Serial.print(counter);
+  // Serial.println("");
+
+}
+
+/*
+sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
     if(currentState == LOW){
 
@@ -150,33 +223,44 @@ void loop() {
         Serial.print(gyrZ);
         Serial.print(", ");
         Serial.println("");
-        
+
     }
-  else{
-    digitalWrite(int1, HIGH);
-    digitalWrite(int2, LOW);
-    digitalWrite(int3, HIGH);
-    digitalWrite(int4, LOW);
+    else{
+      delay(500);
+    }
+
+
+    if (counter == 1000){
+    accX_tot = accX_tot/counter;
+    accY_tot = accY_tot/counter;
+    accZ_tot = accZ_tot/counter;
+    gyrX_tot = gyrX_tot/counter;
+    gyrY_tot = gyrY_tot/counter;
+    gyrZ_tot = gyrZ_tot/counter;
+
+    Serial.println("Average Values:");
+    Serial.println("");
+    Serial.print(accX_tot);
     Serial.print(", ");
-
-    //delay(500);
+    Serial.print(accY_tot);
+    Serial.print(", ");
+    Serial.print(accZ_tot);
+    Serial.print(", ");
+    Serial.print(gyrX_tot);
+    Serial.print(", ");
+    Serial.print(gyrY_tot);
+    Serial.print(", ");
+    Serial.print(gyrZ_tot);
+    Serial.print(", ");
+    delay(100000);
   }
-  */
-}
 
-void forward(int PWM){
-  Serial.println("Forward");
-  digitalWrite(int1, HIGH);
-  digitalWrite(int2, LOW);
-  digitalWrite(int3, LOW);
-  digitalWrite(int4, HIGH);
-}
-void backward(int PWM){
-  Serial.println("Backward");
-  digitalWrite(ENA, PWM);
-  digitalWrite(ENB, PWM);
-  digitalWrite(int1, LOW);
-  digitalWrite(int2, HIGH);
-  digitalWrite(int3, HIGH);
-  digitalWrite(int4, LOW);
-}
+    accX_tot = accX_tot + accX;
+    accY_tot = accY_tot + accY;
+    accZ_tot = accZ_tot + accZ;
+    gyrX_tot = gyrX_tot + gyrX;
+    gyrY_tot = gyrY_tot + gyrY;
+    gyrZ_tot = gyrZ_tot + gyrZ;
+    counter++;
+
+    */
